@@ -1,0 +1,110 @@
+[
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "16.16.16.247",
+    "ip": "192.168.98.3"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "16.16.16.249",
+    "ip": "192.168.98.4"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "16.16.16.248",
+    "ip": "192.168.98.5"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "16.16.16.240",
+    "ip": "192.168.98.6"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "16.16.16.238",
+    "ip": "192.168.98.7"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "16.16.16.241",
+    "ip": "192.168.98.8"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.2.251",
+    "ip": "192.168.98.33"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.2.252",
+    "ip": "192.168.98.34"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.2.253",
+    "ip": "192.168.98.35"
+  },
+  {
+    "auth": "Authorized : 10",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.3.252",
+    "ip": "192.168.98.36"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.3.253",
+    "ip": "192.168.98.37"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.3.254",
+    "ip": "192.168.98.38"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.10.254",
+    "ip": "192.168.98.23"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.10.252",
+    "ip": "192.168.98.24"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.10.253",
+    "ip": "192.168.98.25"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.11.253",
+    "ip": "192.168.98.26"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.11.252",
+    "ip": "192.168.98.27"
+  },
+  {
+    "auth": "Authorized : 30",
+    "unauth": "Unauthorized : 0",
+    "ipPB": "192.168.11.254",
+    "ip": "192.168.98.28"
+  }
+]
