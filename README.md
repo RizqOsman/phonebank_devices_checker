@@ -17,4 +17,4 @@ Phonebank Checker is a tool designed to validate and check the status of phoneba
 ## Installation
 1. Clone the repository:
    ```sh
-   git clone https://github.com/yourusername/phonebank-checker.git
+   git clone https://github.com/RizqOsman/phonebank_devices_checker.git
