@@ -18,3 +18,13 @@ Phonebank Checker is a tool designed to validate and check the status of phoneba
 1. Clone the repository:
    ```sh
    git clone https://github.com/RizqOsman/phonebank_devices_checker.git
+
+## Move to directory 
+- cd your downloads path/phonebank_devices_checker
+- npm install
+- npm install puppeteer
+
+## Usage
+To run the Phonebank Checker, use the following command:
+- node checker.js
+
