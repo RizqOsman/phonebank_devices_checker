@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device History - Phonebank Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .nav-bar {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #64748b;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: #3b82f6;
+            background-color: #f1f5f9;
+        }
+
+        .nav-links a.active {
+            color: #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            margin-bottom: 1.5rem;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        .form-group select,
+        .form-group input {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        .uptime-bar {
+            width: 100%;
+            height: 20px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+
+        .uptime-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #34d399);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .device-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .device-url {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .device-location {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-badge.online {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.offline {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0.5rem;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e5e7eb;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 1.5rem;
+            padding-left: 1.5rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -0.5rem;
+            top: 0.25rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #3b82f6;
+            border: 3px solid white;
+            box-shadow: 0 0 0 3px #e5e7eb;
+        }
+
+        .timeline-item.offline::before {
+            background: #ef4444;
+        }
+
+        .timeline-content {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 0.75rem;
+        }
+
+        .timeline-time {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-status {
+            font-weight: 500;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📈 Device History</h1>
+        <div class="subtitle">Uptime and downtime analysis</div>
+    </div>
+
+    <div class="nav-bar">
+        <div class="nav-links">
+            <a href="/">🏠 Dashboard</a>
+            <a href="/history" class="active">📈 History</a>
+            <a href="/reports">📊 Reports</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Controls -->
+        <div class="controls">
+            <div class="form-group">
+                <label for="deviceSelect">Device</label>
+                <select id="deviceSelect">
+                    <option value="">All Devices</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="locationSelect">Location</label>
+                <select id="locationSelect">
+                    <option value="">All Locations</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="timeRange">Time Range</label>
+                <select id="timeRange">
+                    <option value="24h">Last 24 Hours</option>
+                    <option value="7d" selected>Last 7 Days</option>
+                    <option value="30d">Last 30 Days</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+            </div>
+            <div class="form-group" id="customRange" style="display: none;">
+                <label for="startDate">Start Date</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="form-group" id="customRangeEnd" style="display: none;">
+                <label for="endDate">End Date</label>
+                <input type="date" id="endDate">
+            </div>
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <button class="btn btn-primary" onclick="loadHistoryData()">📊 Load Data</button>
+            </div>
+        </div>
+
+        <!-- Overall Statistics -->
+        <div class="card">
+            <h3>📊 Overall Statistics</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalDevices">-</div>
+                    <div class="stat-label">Total Devices</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgUptime">-</div>
+                    <div class="stat-label">Average Uptime</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalDowntime">-</div>
+                    <div class="stat-label">Total Downtime</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgResponseTime">-</div>
+                    <div class="stat-label">Avg Response Time</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-2">
+            <div class="card">
+                <h3>📈 Uptime Trend</h3>
+                <div class="chart-container">
+                    <canvas id="uptimeChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3>⚡ Response Time Trend</h3>
+                <div class="chart-container">
+                    <canvas id="responseTimeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device Details -->
+        <div class="card">
+            <h3>🖥️ Device Details</h3>
+            <div id="deviceDetails">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading device history...
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <h3>⏰ Recent Events Timeline</h3>
+            <div id="timelineContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading timeline...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class HistoryDashboard {
+            constructor() {
+                this.charts = {};
+                this.devices = [];
+                this.locations = [];
+                this.init();
+            }
+
+            init() {
+                this.loadDevicesAndLocations();
+                this.setupCharts();
+                this.setupEventListeners();
+                this.loadHistoryData();
+            }
+
+            async loadDevicesAndLocations() {
+                try {
+                    const response = await fetch('/api/overview');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Extract devices and locations from overview data
+                        this.locations = Object.keys(data.data.locationStats || {});
+                        this.populateSelects();
+                    }
+                } catch (error) {
+                    console.error('Failed to load devices and locations:', error);
+                }
+            }
+
+            populateSelects() {
+                const locationSelect = document.getElementById('locationSelect');
+                locationSelect.innerHTML = '<option value="">All Locations</option>';
+                
+                this.locations.forEach(location => {
+                    const option = document.createElement('option');
+                    option.value = location;
+                    option.textContent = location;
+                    locationSelect.appendChild(option);
+                });
+            }
+
+            setupEventListeners() {
+                document.getElementById('timeRange').addEventListener('change', (e) => {
+                    const customRange = document.getElementById('customRange');
+                    const customRangeEnd = document.getElementById('customRangeEnd');
+                    
+                    if (e.target.value === 'custom') {
+                        customRange.style.display = 'block';
+                        customRangeEnd.style.display = 'block';
+                    } else {
+                        customRange.style.display = 'none';
+                        customRangeEnd.style.display = 'none';
+                    }
+                });
+            }
+
+            setupCharts() {
+                // Uptime Trend Chart
+                const uptimeCtx = document.getElementById('uptimeChart').getContext('2d');
+                this.charts.uptime = new Chart(uptimeCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Uptime %',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+
+                // Response Time Chart
+                const responseCtx = document.getElementById('responseTimeChart').getContext('2d');
+                this.charts.responseTime = new Chart(responseCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Response Time (ms)',
+                            data: [],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+
+            async loadHistoryData() {
+                try {
+                    const timeRange = document.getElementById('timeRange').value;
+                    const location = document.getElementById('locationSelect').value;
+                    const device = document.getElementById('deviceSelect').value;
+                    
+                    let params = new URLSearchParams();
+                    if (timeRange) params.append('range', timeRange);
+                    if (location) params.append('location', location);
+                    if (device) params.append('device', device);
+
+                    const [historyResponse, recentChecksResponse] = await Promise.all([
+                        fetch(`/api/history/uptime?${params}`),
+                        fetch(`/api/checks/recent?limit=50`)
+                    ]);
+
+                    const historyData = await historyResponse.json();
+                    const recentData = await recentChecksResponse.json();
+
+                    if (historyData.success) {
+                        this.updateStatistics(historyData.data);
+                        this.updateCharts(historyData.data);
+                    }
+
+                    if (recentData.success) {
+                        this.updateDeviceDetails(recentData.data);
+                        this.updateTimeline(recentData.data);
+                    }
+
+                } catch (error) {
+                    console.error('Failed to load history data:', error);
+                    // Show mock data for demonstration
+                    this.showMockData();
+                }
+            }
+
+            showMockData() {
+                // Generate mock data for demonstration
+                const labels = [];
+                const uptimeData = [];
+                const responseTimeData = [];
+                
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    labels.push(date.toLocaleDateString());
+                    uptimeData.push(Math.random() * 20 + 80);
+                    responseTimeData.push(Math.random() * 2000 + 500);
+                }
+
+                this.charts.uptime.data.labels = labels;
+                this.charts.uptime.data.datasets[0].data = uptimeData;
+                this.charts.uptime.update();
+
+                this.charts.responseTime.data.labels = labels;
+                this.charts.responseTime.data.datasets[0].data = responseTimeData;
+                this.charts.responseTime.update();
+
+                // Mock statistics
+                document.getElementById('totalDevices').textContent = '41';
+                document.getElementById('avgUptime').textContent = '94.2%';
+                document.getElementById('totalDowntime').textContent = '2.3h';
+                document.getElementById('avgResponseTime').textContent = '1.2s';
+
+                this.showMockDevices();
+                this.showMockTimeline();
+            }
+
+            showMockDevices() {
+                const container = document.getElementById('deviceDetails');
+                const mockDevices = [
+                    { url: 'http://192.168.98.54:5555/', location: 'Posko0', uptime: 98.5, avgResponse: 450 },
+                    { url: 'http://192.168.98.53:5555/', location: 'Posko0', uptime: 96.2, avgResponse: 520 },
+                    { url: 'http://15.15.15.33:5555/', location: 'DEIMOS', uptime: 85.1, avgResponse: 1200 },
+                ];
+
+                container.innerHTML = mockDevices.map(device => `
+                    <div class="device-card">
+                        <div class="device-header">
+                            <div>
+                                <div class="device-url">${device.url}</div>
+                                <div class="device-location">📍 ${device.location}</div>
+                            </div>
+                            <span class="status-badge ${device.uptime > 95 ? 'online' : 'offline'}">
+                                ${device.uptime > 95 ? 'Healthy' : 'Issues'}
+                            </span>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value">${device.uptime}%</div>
+                                <div class="stat-label">Uptime</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${device.avgResponse}ms</div>
+                                <div class="stat-label">Avg Response</div>
+                            </div>
+                        </div>
+                        <div class="uptime-bar">
+                            <div class="uptime-fill" style="width: ${device.uptime}%"></div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            showMockTimeline() {
+                const container = document.getElementById('timelineContainer');
+                const mockEvents = [
+                    { time: '2 minutes ago', status: 'Device came back online', type: 'online', device: 'http://15.15.15.26:5555/' },
+                    { time: '15 minutes ago', status: 'Connection timeout detected', type: 'offline', device: 'http://15.15.15.26:5555/' },
+                    { time: '1 hour ago', status: 'Slow response time detected', type: 'warning', device: 'http://192.168.98.28:5555/' },
+                    { time: '2 hours ago', status: 'System monitoring started', type: 'online', device: 'System' },
+                ];
+
+                container.innerHTML = `
+                    <div class="timeline">
+                        ${mockEvents.map(event => `
+                            <div class="timeline-item ${event.type}">
+                                <div class="timeline-content">
+                                    <div class="timeline-time">${event.time}</div>
+                                    <div class="timeline-status">${event.status}</div>
+                                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.25rem;">
+                                        ${event.device}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            updateStatistics(data) {
+                // Update statistics from real data
+                document.getElementById('totalDevices').textContent = data.totalDevices || '-';
+                document.getElementById('avgUptime').textContent = (data.averageUptime || 0) + '%';
+                document.getElementById('totalDowntime').textContent = data.totalDowntime || '-';
+                document.getElementById('avgResponseTime').textContent = data.averageResponseTime || '-';
+            }
+
+            updateCharts(data) {
+                if (data.uptimeTrend) {
+                    this.charts.uptime.data.labels = data.uptimeTrend.labels;
+                    this.charts.uptime.data.datasets[0].data = data.uptimeTrend.data;
+                    this.charts.uptime.update();
+                }
+
+                if (data.responseTimeTrend) {
+                    this.charts.responseTime.data.labels = data.responseTimeTrend.labels;
+                    this.charts.responseTime.data.datasets[0].data = data.responseTimeTrend.data;
+                    this.charts.responseTime.update();
+                }
+            }
+
+            updateDeviceDetails(data) {
+                // Group devices and calculate statistics
+                const deviceStats = {};
+                data.forEach(check => {
+                    if (!deviceStats[check.url]) {
+                        deviceStats[check.url] = {
+                            url: check.url,
+                            location: check.location,
+                            checks: [],
+                            upCount: 0,
+                            totalCount: 0,
+                            totalResponseTime: 0
+                        };
+                    }
+                    
+                    deviceStats[check.url].checks.push(check);
+                    deviceStats[check.url].totalCount++;
+                    if (check.status === 'up' || check.status === 'online') {
+                        deviceStats[check.url].upCount++;
+                    }
+                    if (check.response_time) {
+                        deviceStats[check.url].totalResponseTime += check.response_time;
+                    }
+                });
+
+                const container = document.getElementById('deviceDetails');
+                const devices = Object.values(deviceStats).slice(0, 10);
+
+                container.innerHTML = devices.map(device => {
+                    const uptime = device.totalCount > 0 ? (device.upCount / device.totalCount * 100).toFixed(1) : 0;
+                    const avgResponse = device.totalCount > 0 ? Math.round(device.totalResponseTime / device.totalCount) : 0;
+                    
+                    return `
+                        <div class="device-card">
+                            <div class="device-header">
+                                <div>
+                                    <div class="device-url">${device.url}</div>
+                                    <div class="device-location">📍 ${device.location}</div>
+                                </div>
+                                <span class="status-badge ${uptime > 95 ? 'online' : 'offline'}">
+                                    ${uptime > 95 ? 'Healthy' : 'Issues'}
+                                </span>
+                            </div>
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-value">${uptime}%</div>
+                                    <div class="stat-label">Uptime</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">${avgResponse}ms</div>
+                                    <div class="stat-label">Avg Response</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value">${device.totalCount}</div>
+                                    <div class="stat-label">Total Checks</div>
+                                </div>
+                            </div>
+                            <div class="uptime-bar">
+                                <div class="uptime-fill" style="width: ${uptime}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            updateTimeline(data) {
+                const container = document.getElementById('timelineContainer');
+                const recentEvents = data.slice(0, 20).map(check => ({
+                    time: new Date(check.check_timestamp).toLocaleString(),
+                    status: check.status === 'up' || check.status === 'online' ? 'Device online' : 'Device offline',
+                    type: check.status === 'up' || check.status === 'online' ? 'online' : 'offline',
+                    device: check.url
+                }));
+
+                container.innerHTML = `
+                    <div class="timeline">
+                        ${recentEvents.map(event => `
+                            <div class="timeline-item ${event.type}">
+                                <div class="timeline-content">
+                                    <div class="timeline-time">${event.time}</div>
+                                    <div class="timeline-status">${event.status}</div>
+                                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.25rem;">
+                                        ${event.device}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        // Global functions
+        function loadHistoryData() {
+            window.historyDashboard.loadHistoryData();
+        }
+
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            window.historyDashboard = new HistoryDashboard();
+        });
+    </script>
+</body>
+</html>

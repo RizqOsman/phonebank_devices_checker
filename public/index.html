@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phonebank Monitor Dashboard</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .header .subtitle {
+            opacity: 0.9;
+            margin-top: 0.25rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-dot.online { background-color: #10b981; }
+        .status-dot.offline { background-color: #ef4444; }
+        .status-dot.warning { background-color: #f59e0b; }
+
+        .grid {
+            display: grid;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #e5e7eb;
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #374151;
+        }
+
+        .metric {
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .metric-change {
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+        }
+
+        .metric-change.positive { color: #10b981; }
+        .metric-change.negative { color: #ef4444; }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-badge.online {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.offline {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-badge.warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .priority-badge.high {
+            background-color: #fecaca;
+            color: #991b1b;
+        }
+
+        .priority-badge.medium {
+            background-color: #fed7aa;
+            color: #9a3412;
+        }
+
+        .priority-badge.low {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .alert-item {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0 8px 8px 0;
+            position: relative;
+            animation: slideIn 0.5s ease-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .alert-item.resolved {
+            background: #f0fdf4;
+            border-left-color: #10b981;
+        }
+
+        .alert-item.new {
+            animation: pulse 2s infinite, slideIn 0.5s ease-out;
+            border-left-width: 6px;
+        }
+
+        .notification-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 400px;
+        }
+
+        .notification {
+            background: #dc2626;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            animation: slideInRight 0.5s ease-out, fadeOut 0.5s ease-in 4.5s forwards;
+            cursor: pointer;
+        }
+
+        .notification.success {
+            background: #16a34a;
+        }
+
+        .notification.warning {
+            background: #d97706;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 1rem;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+            50% {
+                box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3), 0 2px 4px -1px rgba(239, 68, 68, 0.2);
+            }
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+
+        .alerts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .alert-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+
+        .alert-badge.critical {
+            background-color: #fecaca;
+            color: #991b1b;
+            animation: pulse 1.5s infinite;
+        }
+
+        .alert-badge.warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .alert-badge.info {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .alert-message {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .alert-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            z-index: 1000;
+        }
+
+        .connection-status.connected {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .connection-status.disconnected {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+
+        .refresh-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .refresh-btn:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Phonebank Monitor Dashboard</h1>
+        <div class="subtitle">Real-time monitoring and analytics</div>
+    </div>
+
+    <div class="connection-status" id="connectionStatus">
+        <div class="spinner"></div>
+        Connecting...
+    </div>
+
+    <!-- Push Notification Container -->
+    <div class="notification-container" id="notificationContainer"></div>
+
+    <!-- Hidden audio for notification sound -->
+    <audio id="notificationSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEaBC2HzfPVgyMFLYPP8tmHNgcZZ7zs4JlNDgxPpuPxtmAaBC6G0e3WgSMELIHO8tiJNwgZZ7zs4JlNDgxPpuPxtmAaBC2G0e3WgSMELYPP8tmHNgcZZ7zs4JlNDgxPpuPxtmAaBC2G0e3WgSMELYPP8tmHNgcZZ7zs4JlNDgxPpuPxtmAaBC2G0e3WgSMELYPP8tmHNgcZZ7zs4JlNDgxPpuPxtmAaBC2G0e3WgSMELYPP8tmHNgcZZ7zs4JlNDgxPpuPxtmAaBC2G0e3WgSMELYPP8tmHNgcZZ7zs4JlNDgxPpuPxtmAaBC2G0e3WgSMELYPP8tmHNgcZZ7zs4JlNDgxPpuPxtmQAAAA=" type="audio/wav">
+    </audio>
+
+    <div class="container">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot online" id="systemStatus"></div>
+                <span>System Status: <span id="systemStatusText">Loading...</span></span>
+            </div>
+            <div>
+                Last Updated: <span id="lastUpdated">-</span>
+            </div>
+            <button class="refresh-btn" onclick="refreshData()">🔄 Refresh</button>
+            <a href="/history" class="refresh-btn" style="text-decoration: none; margin-left: 0.5rem;">📈 History</a>
+        </div>
+
+        <!-- Overview Metrics -->
+        <div class="grid grid-4">
+            <div class="card">
+                <div class="metric">
+                    <div class="metric-value" id="totalDevices">-</div>
+                    <div class="metric-label">Total Devices</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="metric">
+                    <div class="metric-value" id="onlineDevices" style="color: #10b981;">-</div>
+                    <div class="metric-label">Online Devices</div>
+                    <div class="metric-change" id="onlineChange"></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="metric">
+                    <div class="metric-value" id="uptimePercentage" style="color: #3b82f6;">-</div>
+                    <div class="metric-label">Overall Uptime</div>
+                    <div class="metric-change" id="uptimeChange"></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="metric">
+                    <div class="metric-value" id="activeAlerts" style="color: #ef4444;">-</div>
+                    <div class="metric-label">Active Alerts</div>
+                    <div class="metric-change" id="alertsChange"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-2">
+            <div class="card">
+                <h3>📈 Uptime Trend</h3>
+                <div class="chart-container">
+                    <canvas id="uptimeChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3>🌍 Location Status</h3>
+                <div class="chart-container">
+                    <canvas id="locationChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device Status Table -->
+        <div class="card">
+            <h3>🖥️ Device Status</h3>
+            <div class="table-container">
+                <table id="deviceTable">
+                    <thead>
+                        <tr>
+                            <th>Device</th>
+                            <th>Location</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Response Time</th>
+                            <th>Authorized</th>
+                            <th>Unauthorized</th>
+                            <th>Last Check</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deviceTableBody">
+                        <tr>
+                            <td colspan="8" class="loading">
+                                <div class="spinner"></div>
+                                Loading devices...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Active Alerts -->
+        <div class="card">
+            <div class="alerts-header">
+                <h3>🚨 Active Alerts</h3>
+                <div>
+                    <button class="refresh-btn" onclick="refreshAlerts()">🔄 Refresh</button>
+                    <button class="refresh-btn" onclick="toggleNotifications()" id="notificationToggle" style="margin-left: 0.5rem;">🔔 Enable Sound</button>
+                </div>
+            </div>
+            <div id="alertsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading alerts...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PhonebankDashboard {
+            constructor() {
+                this.socket = null;
+                this.charts = {};
+                this.data = {
+                    overview: {},
+                    devices: [],
+                    alerts: [],
+                    systemStatus: {}
+                };
+                this.notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+                this.seenAlerts = new Set();
+                
+                this.init();
+            }
+
+            init() {
+                this.connectWebSocket();
+                this.setupCharts();
+                this.loadInitialData();
+                
+                // Auto-refresh every 2 minutes for real-time data
+                setInterval(() => {
+                    this.loadInitialData();
+                    console.log('🔄 Auto-refreshing data...');
+                }, 120000); // 2 minutes = 120,000ms
+                
+                // Fallback refresh if WebSocket disconnected
+                setInterval(() => {
+                    if (!this.socket || !this.socket.connected) {
+                        this.loadInitialData();
+                    }
+                }, 30000);
+            }
+
+            connectWebSocket() {
+                this.socket = io();
+                
+                this.socket.on('connect', () => {
+                    console.log('Connected to server');
+                    this.updateConnectionStatus(true);
+                    this.socket.emit('subscribe', ['system-status', 'device-updates', 'alerts']);
+                });
+
+                this.socket.on('disconnect', () => {
+                    console.log('Disconnected from server');
+                    this.updateConnectionStatus(false);
+                });
+
+                this.socket.on('overview-update', (data) => {
+                    this.updateOverview(data);
+                });
+
+                this.socket.on('recent-checks', (data) => {
+                    this.updateDeviceTable(data);
+                });
+
+                this.socket.on('active-alerts', (data) => {
+                    this.updateAlerts(data);
+                });
+
+                this.socket.on('system-status', (data) => {
+                    this.updateSystemStatus(data);
+                });
+            }
+
+            updateConnectionStatus(connected) {
+                const statusEl = document.getElementById('connectionStatus');
+                if (connected) {
+                    statusEl.className = 'connection-status connected';
+                    statusEl.innerHTML = 'Connected';
+                } else {
+                    statusEl.className = 'connection-status disconnected';
+                    statusEl.innerHTML = 'Disconnected';
+                }
+            }
+
+            async loadInitialData() {
+                try {
+                    const [overview, devices, alerts] = await Promise.all([
+                        fetch('/api/overview').then(r => r.json()),
+                        fetch('/api/checks/recent?limit=20').then(r => r.json()),
+                        fetch('/api/alerts').then(r => r.json())
+                    ]);
+
+                    if (overview.success) this.updateOverview(overview.data);
+                    if (devices.success) this.updateDeviceTable(devices.data);
+                    if (alerts.success) this.updateAlerts(alerts.data);
+
+                } catch (error) {
+                    console.error('Failed to load initial data:', error);
+                }
+            }
+
+            updateOverview(data) {
+                document.getElementById('totalDevices').textContent = data.summary?.totalDevices || 0;
+                document.getElementById('onlineDevices').textContent = data.summary?.onlineDevices || 0;
+                document.getElementById('uptimePercentage').textContent = (data.summary?.uptimePercentage || 0) + '%';
+                document.getElementById('activeAlerts').textContent = data.summary?.activeAlerts || 0;
+                
+                // Update system status
+                const statusDot = document.getElementById('systemStatus');
+                const statusText = document.getElementById('systemStatusText');
+                
+                if (data.systemHealth) {
+                    if (data.systemHealth.isRunning) {
+                        statusDot.className = 'status-dot online';
+                        statusText.textContent = 'Running';
+                    } else {
+                        statusDot.className = 'status-dot offline';
+                        statusText.textContent = 'Stopped';
+                    }
+                }
+                
+                document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+                
+                // Update charts
+                this.updateCharts(data);
+            }
+
+            updateDeviceTable(data) {
+                const tbody = document.getElementById('deviceTableBody');
+                
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #6b7280;">No recent checks available</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.slice(0, 10).map(device => `
+                    <tr>
+                        <td>${this.truncateUrl(device.url || 'N/A')}</td>
+                        <td>${device.location || 'N/A'}</td>
+                        <td><span class="priority-badge ${device.priority || 'medium'}">${device.priority || 'medium'}</span></td>
+                        <td><span class="status-badge ${device.status}">${device.status}</span></td>
+                        <td>${device.response_time ? device.response_time + 'ms' : 'N/A'}</td>
+                        <td>${device.authorized_count || 0}</td>
+                        <td>${device.unauthorized_count || 0}</td>
+                        <td>${device.check_timestamp ? new Date(device.check_timestamp).toLocaleString() : 'N/A'}</td>
+                    </tr>
+                `).join('');
+            }
+
+            updateAlerts(data) {
+                const container = document.getElementById('alertsContainer');
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 2rem;">No active alerts</p>';
+                    return;
+                }
+
+                // Check for new alerts
+                const newAlerts = data.filter(alert => !this.seenAlerts.has(alert.id));
+                
+                // Show push notifications for new alerts
+                newAlerts.forEach(alert => {
+                    this.showNotification(alert);
+                    this.seenAlerts.add(alert.id);
+                });
+
+                container.innerHTML = data.map(alert => {
+                    const isNew = newAlerts.some(newAlert => newAlert.id === alert.id);
+                    const severityBadge = this.getSeverityBadge(alert.severity);
+                    
+                    return `
+                        <div class="alert-item ${alert.status === 'resolved' ? 'resolved' : ''} ${isNew ? 'new' : ''}">
+                            <div class="alert-title">
+                                ${alert.title}
+                                ${severityBadge}
+                            </div>
+                            <div class="alert-message">${alert.message}</div>
+                            <div class="alert-meta">
+                                <span>Severity: <strong>${alert.severity}</strong></span>
+                                <span>Location: ${alert.location || 'System'}</span>
+                                <span>${new Date(alert.created_at).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            getSeverityBadge(severity) {
+                const badgeClass = severity === 'critical' ? 'critical' : 
+                                 severity === 'warning' ? 'warning' : 'info';
+                return `<span class="alert-badge ${badgeClass}">${severity.toUpperCase()}</span>`;
+            }
+
+            showNotification(alert) {
+                // Play notification sound
+                if (this.notificationsEnabled) {
+                    this.playNotificationSound();
+                }
+
+                // Create push notification
+                const notification = document.createElement('div');
+                notification.className = `notification ${alert.severity === 'critical' ? '' : alert.severity}`;
+                notification.innerHTML = `
+                    <div class="notification-title">
+                        🚨 ${alert.severity.toUpperCase()} ALERT
+                        <button class="notification-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                    </div>
+                    <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">${alert.title}</div>
+                    <div style="font-size: 0.8rem; opacity: 0.9;">${alert.location || 'System'} • ${new Date(alert.created_at).toLocaleTimeString()}</div>
+                `;
+
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 5000);
+
+                // Add click to remove
+                notification.addEventListener('click', () => {
+                    notification.remove();
+                });
+
+                document.getElementById('notificationContainer').appendChild(notification);
+
+                // Request browser notification permission
+                if (this.notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+                    new Notification(`${alert.severity.toUpperCase()} Alert`, {
+                        body: `${alert.title} - ${alert.location || 'System'}`,
+                        icon: '/favicon.ico',
+                        badge: '/favicon.ico'
+                    });
+                }
+            }
+
+            playNotificationSound() {
+                const audio = document.getElementById('notificationSound');
+                if (audio) {
+                    audio.currentTime = 0;
+                    audio.play().catch(e => console.log('Could not play notification sound'));
+                }
+            }
+
+            updateSystemStatus(data) {
+                // Update system-wide metrics display
+                console.log('System status update:', data);
+            }
+
+            setupCharts() {
+                // Uptime Trend Chart
+                const uptimeCtx = document.getElementById('uptimeChart').getContext('2d');
+                this.charts.uptime = new Chart(uptimeCtx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Uptime %',
+                            data: [],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+
+                // Location Status Chart
+                const locationCtx = document.getElementById('locationChart').getContext('2d');
+                this.charts.location = new Chart(locationCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            data: [],
+                            backgroundColor: [
+                                '#10b981',
+                                '#ef4444',
+                                '#f59e0b',
+                                '#8b5cf6',
+                                '#06b6d4',
+                                '#f97316'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            updateCharts(data) {
+                // Update uptime chart with dummy data for now
+                const now = new Date();
+                const labels = [];
+                const uptimeData = [];
+                
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(now);
+                    date.setHours(now.getHours() - i);
+                    labels.push(date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+                    uptimeData.push(Math.random() * 20 + 80); // Random data between 80-100
+                }
+                
+                this.charts.uptime.data.labels = labels;
+                this.charts.uptime.data.datasets[0].data = uptimeData;
+                this.charts.uptime.update();
+
+                // Update location chart
+                if (data.locationStats) {
+                    const locations = Object.keys(data.locationStats);
+                    const onlineCounts = locations.map(loc => data.locationStats[loc].online || 0);
+                    
+                    this.charts.location.data.labels = locations;
+                    this.charts.location.data.datasets[0].data = onlineCounts;
+                    this.charts.location.update();
+                }
+            }
+
+            truncateUrl(url) {
+                if (url.length > 30) {
+                    return url.substring(0, 27) + '...';
+                }
+                return url;
+            }
+        }
+
+        // Global functions
+        function refreshData() {
+            window.dashboard.loadInitialData();
+        }
+
+        function refreshAlerts() {
+            fetch('/api/alerts')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        window.dashboard.updateAlerts(data.data);
+                    }
+                })
+                .catch(error => console.error('Failed to refresh alerts:', error));
+        }
+
+        function toggleNotifications() {
+            const dashboard = window.dashboard;
+            const button = document.getElementById('notificationToggle');
+            
+            dashboard.notificationsEnabled = !dashboard.notificationsEnabled;
+            localStorage.setItem('notificationsEnabled', dashboard.notificationsEnabled);
+            
+            if (dashboard.notificationsEnabled) {
+                button.textContent = '🔔 Sound On';
+                button.style.background = '#10b981';
+                
+                // Request browser notification permission
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+            } else {
+                button.textContent = '🔕 Sound Off';
+                button.style.background = '#6b7280';
+            }
+        }
+
+        // Initialize dashboard when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            window.dashboard = new PhonebankDashboard();
+            
+            // Initialize notification toggle button
+            const button = document.getElementById('notificationToggle');
+            if (window.dashboard.notificationsEnabled) {
+                button.textContent = '🔔 Sound On';
+                button.style.background = '#10b981';
+            } else {
+                button.textContent = '🔕 Sound Off';
+                button.style.background = '#6b7280';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+{
+  "environment": "production",
+  "monitoring": {
+    "timeout": 10000,
+    "retryAttempts": 3,
+    "retryDelay": 2000,
+    "concurrencyLimit": 3,
+    "intervalMinutes": 10,
+    "enableCache": true,
+    "cacheExpiration": 600000
+  },
+  "locations": {
+    "STIN": {
+      "priority": "high",
+      "enabled": true,
+      "urls": [
+        "http://192.168.98.13:5555/",
+        "http://192.168.98.14:5555/",
+        "http://192.168.98.15:5555/",
+        "http://192.168.98.16:5555/",
+        "http://192.168.98.17:5555/",
+        "http://192.168.98.18:5555/",
+        "http://192.168.98.43:5555/",
+        "http://192.168.98.44:5555/",
+        "http://192.168.98.45:5555/",
+        "http://192.168.98.46:5555/",
+        "http://192.168.98.47:5555/",
+        "http://192.168.98.48:5555/"
+      ]
+    },
+    "Manggala": {
+      "priority": "high",
+      "enabled": true,
+      "urls": [
+        "http://192.168.98.3:5555/",
+        "http://192.168.98.4:5555/",
+        "http://192.168.98.5:5555/",
+        "http://192.168.98.6:5555/",
+        "http://192.168.98.7:5555/",
+        "http://192.168.98.8:5555/"
+      ]
+    },
+    "Cipondoh": {
+      "priority": "medium",
+      "enabled": true,
+      "urls": [
+        "http://192.168.98.33:5555/",
+        "http://192.168.98.34:5555/",
+        "http://192.168.98.35:5555/",
+        "http://192.168.98.36:5555/",
+        "http://192.168.98.37:5555/",
+        "http://192.168.98.38:5555/"
+      ]
+    },
+    "Depok": {
+      "priority": "medium",
+      "enabled": true,
+      "urls": [
+        "http://192.168.98.23:5555/",
+        "http://192.168.98.24:5555/",
+        "http://192.168.98.25:5555/",
+        "http://192.168.98.26:5555/",
+        "http://192.168.98.27:5555/",
+        "http://192.168.98.28:5555/"
+      ]
+    },
+    "Posko0": {
+      "priority": "low",
+      "enabled": true,
+      "urls": [
+        "http://192.168.98.53:5555/",
+        "http://192.168.98.54:5555/",
+        "http://192.168.98.55:5555/",
+        "http://192.168.98.56:5555/"
+      ]
+    },
+    "DEIMOS": {
+      "priority": "high",
+      "enabled": true,
+      "urls": [
+        "http://15.15.15.19:5555/",
+        "http://15.15.15.26:5555/",
+        "http://15.15.15.33:5555/",
+        "http://15.15.15.34:5555/",
+        "http://15.15.15.40:5555/",
+        "http://15.15.15.145:5555/",
+        "http://15.15.15.146:5555/"
+      ]
+    }
+  },
+  "database": {
+    "path": "./phonebank_monitor.db",
+    "enableWAL": true,
+    "backupInterval": 86400000,
+    "retentionDays": 30
+  },
+  "alerts": {
+    "enabled": true,
+    "thresholds": {
+      "unauthorizedMax": 5,
+      "responseTimeMax": 30000,
+      "uptimeMin": 95.0
+    },
+    "notifications": {
+      "email": {
+        "enabled": false,
+        "smtp": {
+          "host": "smtp.gmail.com",
+          "port": 587,
+          "secure": false,
+          "auth": {
+            "user": "",
+            "pass": ""
+          }
+        },
+        "recipients": []
+      },
+      "webhook": {
+        "enabled": false,
+        "url": "",
+        "method": "POST",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "slack": {
+        "enabled": false,
+        "webhookUrl": "",
+        "channel": "#monitoring"
+      }
+    }
+  },
+  "dashboard": {
+    "port": 3000,
+    "host": "localhost",
+    "staticPath": "./public",
+    "enableAuth": false,
+    "refreshInterval": 30000
+  },
+  "logging": {
+    "level": "info",
+    "file": "./logs/phonebank_monitor.log",
+    "maxSize": "10m",
+    "maxFiles": 5
+  }
+}
